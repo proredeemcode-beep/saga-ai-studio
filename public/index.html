@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAGA AI STUDIO</title>
+<style>
+:root{color-scheme:dark;--bg:#080b18;--panel:#171c35;--line:#7548ed;--purple:#a879ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#21134a,var(--bg) 48%);color:#fff;font:16px Arial,sans-serif;padding:18px}
+main{max-width:760px;margin:auto}header{text-align:center;padding:22px 8px}h1{color:var(--purple);margin:4px}header p{color:#bbb}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin:14px 0}
+label{display:block;margin:12px 0 7px;color:#ddd}textarea,select,input{width:100%;background:#0d1228;color:white;border:1px solid #51417e;border-radius:10px;padding:12px;font:inherit}
+textarea{min-height:160px;resize:vertical}button{border:0;border-radius:11px;padding:13px 16px;background:#7548ed;color:white;font-weight:bold;font-size:15px;cursor:pointer;margin:8px 6px 0 0}button:disabled{opacity:.5}
+.secondary{background:#303653}.status{color:#c7b4ff;white-space:pre-wrap;min-height:24px;margin-top:12px}
+video,audio{width:100%;margin-top:12px}a{color:#c7b4ff}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+small{color:#aaa}.saved{padding:10px;border-bottom:1px solid #34304b;overflow-wrap:anywhere}
+@media(max-width:520px){.row{grid-template-columns:1fr}body{padding:12px}}
+</style>
+</head>
+<body><main>
+<header><h1>⚔️ SAGA AI STUDIO</h1><p>Create Your Own Anime Universe</p></header>
+<section class="card">
+<h2>📝 Script to Anime</h2>
+<label for="script">Your story / script (Hindi or English)</label>
+<textarea id="script" maxlength="2500" placeholder="एक बहादुर anime योद्धा अंधेरे साम्राज्य को बचाने निकलता है..."></textarea>
+<div class="row">
+ <div><label for="voice">Hindi voice</label><select id="voice"><option value="shubh">Male — Shubh</option><option value="manan">Male — Manan</option><option value="shreya">Female — Shreya</option><option value="ishita">Female — Ishita</option></select></div>
+ <div><label for="duration">Video duration</label><select id="duration"><option value="5">5 seconds</option><option value="10">10 seconds</option></select></div>
+</div>
+<button id="voiceBtn">🎙️ Generate Hindi Voice</button>
+<button id="videoBtn">🎬 Generate AI Video</button>
+<div id="status" class="status" role="status"></div>
+<div id="audioBox"></div><div id="videoBox"></div>
+</section>
+<section class="card">
+<h2>📁 My Projects</h2><button class="secondary" id="saveBtn">Save script</button><div id="projects"></div>
+</section>
+<section class="card">
+<h3>⚠️ Setup required</h3>
+<small>This app needs your own backend server and API keys. Never put provider API keys in this HTML file. Video generation may use paid credits.</small>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const status=(s)=>$('status').textContent=s;
+async function callApi(path,body){
+ const r=await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const data=await r.json().catch(()=>({error:'Invalid server response'}));
+ if(!r.ok)throw new Error(data.error||'Request failed');
+ return data;
+}
+$('voiceBtn').onclick=async()=>{
+ const text=$('script').value.trim(); if(!text)return status('আগে Script লিখুন।');
+ $('voiceBtn').disabled=true; status('Hindi voice তৈরি হচ্ছে…');
+ try{
+  const data=await callApi('voice',{text,speaker:$('voice').value});
+  const audio=new Audio('data:audio/wav;base64,'+data.audio);
+  $('audioBox').innerHTML=''; const player=document.createElement('audio');player.controls=true;player.src='data:audio/wav;base64,'+data.audio;$('audioBox').append(player);
+  status('Hindi voice তৈরি হয়েছে।');
+ }catch(e){status('Voice error: '+e.message)}
+ finally{$('voiceBtn').disabled=false}
+};
+$('videoBtn').onclick=async()=>{
+ const text=$('script').value.trim();if(!text)return status('আগে Script লিখুন।');
+ $('videoBtn').disabled=true;status('AI video তৈরি হচ্ছে। এতে কয়েক মিনিট লাগতে পারে…');
+ try{
+  const data=await callApi('video',{script:text,duration:Number($('duration').value)});
+  $('videoBox').innerHTML='';const v=document.createElement('video');v.controls=true;v.playsInline=true;v.src=data.videoUrl;$('videoBox').append(v);
+  const a=document.createElement('a');a.href=data.videoUrl;a.download='saga-anime.mp4';a.textContent='Download video';$('videoBox').append(a);
+  status('ভিডিও তৈরি হয়েছে!');
+ }catch(e){status('Video error: '+e.message)}
+ finally{$('videoBtn').disabled=false}
+};
+function loadProjects(){const p=JSON.parse(localStorage.getItem('sagaProjects')||'[]');$('projects').innerHTML='';p.forEach((x,i)=>{const d=document.createElement('div');d.className='saved';d.textContent=x;const b=document.createElement('button');b.className='secondary';b.textContent='Load';b.onclick=()=>{$('script').value=x};d.append(b);$('projects').append(d)})}
+$('saveBtn').onclick=()=>{const t=$('script').value.trim();if(!t)return status('কোনো Script নেই।');const p=JSON.parse(localStorage.getItem('sagaProjects')||'[]');p.unshift(t);localStorage.setItem('sagaProjects',JSON.stringify(p.slice(0,20)));loadProjects();status('Script saved on this device.')};
+loadProjects();
+</script>
+</body></html>
