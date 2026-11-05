@@ -31,7 +31,7 @@ app.post("/api/voice", async (req, res) => {
       },
       body: JSON.stringify({
         text: text.trim(),
-        target_language_code: "hi-IN",
+        language_code: "hi-IN",
         speaker,
         model: "bulbul:v3",
         output_audio_codec: "wav"
